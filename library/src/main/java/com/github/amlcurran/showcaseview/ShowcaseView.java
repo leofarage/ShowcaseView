@@ -26,10 +26,13 @@ import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.support.annotation.IntDef;
+import android.support.annotation.LayoutRes;
 import android.text.Layout;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -64,7 +67,7 @@ public class ShowcaseView extends RelativeLayout
     }
 
     private Button mEndButton;
-    private final TextDrawer textDrawer;
+    private TextDrawer textDrawer;
     private ShowcaseDrawer showcaseDrawer;
     private final ShowcaseAreaCalculator showcaseAreaCalculator;
     private final AnimationFactory animationFactory;
@@ -96,10 +99,14 @@ public class ShowcaseView extends RelativeLayout
     private final int[] positionInWindow = new int[2];
 
     protected ShowcaseView(Context context, boolean newStyle) {
-        this(context, null, R.styleable.CustomTheme_showcaseViewStyle, newStyle);
+        this(context, null, R.styleable.CustomTheme_showcaseViewStyle, R.layout.showcase_button, newStyle);
     }
 
-    protected ShowcaseView(Context context, AttributeSet attrs, int defStyle, boolean newStyle) {
+    protected ShowcaseView(Context context, boolean newStyle, @LayoutRes int buttonId) {
+        this(context, null, R.styleable.CustomTheme_showcaseViewStyle, buttonId, newStyle);
+    }
+
+    protected ShowcaseView(Context context, AttributeSet attrs, int defStyle, int buttonId, boolean newStyle) {
         super(context, attrs, defStyle);
 
         ApiUtils apiUtils = new ApiUtils();
@@ -120,7 +127,10 @@ public class ShowcaseView extends RelativeLayout
         fadeInMillis = getResources().getInteger(android.R.integer.config_mediumAnimTime);
         fadeOutMillis = getResources().getInteger(android.R.integer.config_mediumAnimTime);
 
-        mEndButton = (Button) LayoutInflater.from(context).inflate(R.layout.showcase_button, null);
+        int endButtonStyle = styled.getResourceId(R.styleable.ShowcaseView_sv_endButtonLayout, R.layout.showcase_button);
+
+        mEndButton = (Button) LayoutInflater.from(getContext()).inflate(buttonId, null);
+
         if (newStyle) {
             showcaseDrawer = new NewShowcaseDrawer(getResources(), context.getTheme());
         } else {
@@ -280,7 +290,20 @@ public class ShowcaseView extends RelativeLayout
         boolean recalculateText = recalculatedCling || hasAlteredText;
         if (recalculateText) {
             Rect rect = hasShowcaseView() ? showcaseAreaCalculator.getShowcaseRect() : new Rect();
-            textDrawer.calculateTextPosition(getMeasuredWidth(), getMeasuredHeight(), shouldCentreText, rect);
+            final float[] textPosition = textDrawer
+                    .calculateTextPosition(getMeasuredWidth(), getMeasuredHeight(),
+                            shouldCentreText, rect);
+            if (mEndButton != null && mEndButton.getLayoutParams() != null) {
+                final RelativeLayout.LayoutParams layoutParams = (LayoutParams) mEndButton
+                        .getLayoutParams();
+                layoutParams.removeRule(ALIGN_PARENT_BOTTOM);
+                layoutParams.removeRule(ALIGN_PARENT_END);
+                layoutParams.removeRule(ALIGN_PARENT_RIGHT);
+                final DisplayMetrics dm = getContext().getResources().getDisplayMetrics();
+                layoutParams.topMargin = (int) textPosition[1];
+                layoutParams.leftMargin = (int) textPosition[0];
+                mEndButton.setLayoutParams(layoutParams);
+            }
         }
         hasAlteredText = false;
     }
@@ -438,8 +461,8 @@ public class ShowcaseView extends RelativeLayout
         private ViewGroup parent;
         private int parentIndex;
 
-        public Builder(Activity activity) {
-            this(activity, false);
+        public Builder(Activity activity, @LayoutRes int buttonId) {
+            this(activity, buttonId, false);
         }
 
         /**
@@ -448,9 +471,9 @@ public class ShowcaseView extends RelativeLayout
          * {@link #setShowcaseDrawer(ShowcaseDrawer)}
          */
         @Deprecated
-        public Builder(Activity activity, boolean useNewStyle) {
+        public Builder(Activity activity, @LayoutRes int buttonId, boolean useNewStyle) {
             this.activity = activity;
-            this.showcaseView = new ShowcaseView(activity, useNewStyle);
+            this.showcaseView = new ShowcaseView(activity, useNewStyle, buttonId);
             this.showcaseView.setTarget(Target.NONE);
             this.parent = (ViewGroup) activity.findViewById(android.R.id.content);
             this.parentIndex = parent.getChildCount();
@@ -495,6 +518,16 @@ public class ShowcaseView extends RelativeLayout
          */
         public Builder setShowcaseDrawer(ShowcaseDrawer showcaseDrawer) {
             showcaseView.setShowcaseDrawer(showcaseDrawer);
+            return this;
+        }
+
+        /**
+         * Set a custom text drawer which will be responsible for measuing and drawing the Title and Content
+         * */
+        public Builder setTextDrawer(TextDrawer textDrawer) {
+            textDrawer = showcaseView.textDrawer;
+            showcaseView.setTextDrawer(textDrawer);
+
             return this;
         }
 
@@ -669,13 +702,19 @@ public class ShowcaseView extends RelativeLayout
         mEndButton = button;
         button.setOnClickListener(hideOnClickListener);
         button.setLayoutParams(copyParams);
-        addView(button);
+        addView(mEndButton);
     }
 
     private void setShowcaseDrawer(ShowcaseDrawer showcaseDrawer) {
         this.showcaseDrawer = showcaseDrawer;
         this.showcaseDrawer.setBackgroundColour(backgroundColor);
         this.showcaseDrawer.setShowcaseColour(showcaseColor);
+        hasAlteredText = true;
+        invalidate();
+    }
+
+    private void setTextDrawer(TextDrawer textDrawer) {
+        this.textDrawer = textDrawer;
         hasAlteredText = true;
         invalidate();
     }

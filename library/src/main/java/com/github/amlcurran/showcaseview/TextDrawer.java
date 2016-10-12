@@ -33,14 +33,14 @@ import android.text.style.TextAppearanceSpan;
  */
 class TextDrawer {
 
-    private static final int INDEX_TEXT_START_X = 0;
-    private static final int INDEX_TEXT_START_Y = 1;
-    private static final int INDEX_TEXT_WIDTH = 2;
+    public static final int INDEX_TEXT_START_X = 0;
+    public static final int INDEX_TEXT_START_Y = 1;
+    public static final int INDEX_TEXT_WIDTH = 2;
 
     private final TextPaint titlePaint;
     private final TextPaint textPaint;
     private final Context context;
-    private final float padding;
+    private float padding;
     private final float actionBarOffset;
 
     private Layout.Alignment textAlignment = Layout.Alignment.ALIGN_NORMAL;
@@ -70,6 +70,10 @@ class TextDrawer {
         textPaint = new TextPaint();
         textPaint.setAntiAlias(true);
     }
+
+	public void setTextPadding(float padding) {
+		this.padding = padding;
+	}
 
     public void draw(Canvas canvas) {
         if (shouldDrawText()) {
@@ -132,7 +136,7 @@ class TextDrawer {
      * @param shouldCentreText
      * @param showcase
      */
-    public void calculateTextPosition(int canvasW, int canvasH, boolean shouldCentreText, Rect showcase) {
+    public float[] calculateTextPosition(int canvasW, int canvasH, boolean shouldCentreText, Rect showcase) {
 
         int[] areas = new int[4]; //left, top, right, bottom
     	areas[ShowcaseView.LEFT_OF_SHOWCASE] = showcase.left * canvasH;
@@ -199,6 +203,18 @@ class TextDrawer {
     	}
 
         hasRecalculated = true;
+
+	    final int width = (int) mBestTextPosition[INDEX_TEXT_WIDTH];
+	    final DynamicLayout titleLayout = new DynamicLayout(titleString, titlePaint,
+			    width, titleAlignment, 1.0f, 1.0f, true);
+
+	    final DynamicLayout contentLayout = new DynamicLayout(textString, textPaint,
+			    width, textAlignment, 1.2f, 1.0f, true);
+
+	    final int titleHeight = titleLayout.getHeight();
+	    final int contentHeight = contentLayout.getHeight();
+
+	    return new float[]{mBestTextPosition[INDEX_TEXT_START_X], mBestTextPosition[INDEX_TEXT_START_Y] + titleHeight + contentHeight + padding};
     }
 
     public void setTitleStyling(int styleId) {
