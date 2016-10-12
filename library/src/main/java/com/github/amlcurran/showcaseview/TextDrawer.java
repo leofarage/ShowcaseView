@@ -150,15 +150,17 @@ class TextDrawer {
             largest = forcedTextPosition;
         }
 
-    	// Position text in largest area
-    	switch(largest) {
-    	case ShowcaseView.LEFT_OF_SHOWCASE:
-    		mBestTextPosition[INDEX_TEXT_START_X] = padding;
+	    final int showcaseCenterX = showcase.left;
+
+	    // Position text in largest area
+	    switch(largest) {
+		    case ShowcaseView.LEFT_OF_SHOWCASE:
+		    mBestTextPosition[INDEX_TEXT_START_X] = showcaseCenterX;
     		mBestTextPosition[INDEX_TEXT_START_Y] = padding;
     		mBestTextPosition[INDEX_TEXT_WIDTH] = showcase.left - 2 * padding;
     		break;
     	case ShowcaseView.ABOVE_SHOWCASE:
-    		mBestTextPosition[INDEX_TEXT_START_X] = padding;
+    		mBestTextPosition[INDEX_TEXT_START_X] = showcaseCenterX;
     		mBestTextPosition[INDEX_TEXT_START_Y] = padding + actionBarOffset;
     		mBestTextPosition[INDEX_TEXT_WIDTH] = canvasW - 2 * padding;
     		break;
@@ -168,7 +170,7 @@ class TextDrawer {
     		mBestTextPosition[INDEX_TEXT_WIDTH] = (canvasW - showcase.right) - 2 * padding;
     		break;
     	case ShowcaseView.BELOW_SHOWCASE:
-    		mBestTextPosition[INDEX_TEXT_START_X] = padding;
+    		mBestTextPosition[INDEX_TEXT_START_X] = showcaseCenterX;
     		mBestTextPosition[INDEX_TEXT_START_Y] = showcase.bottom + padding;
     		mBestTextPosition[INDEX_TEXT_WIDTH] = canvasW - 2 * padding;
     		break;
