@@ -61,10 +61,21 @@ public class ShowcaseView extends RelativeLayout
     public static final int ABOVE_SHOWCASE = 1;
     public static final int BELOW_SHOWCASE = 3;
 
+    public static final int ALIGN_WITH_TEXT = 0;
+    public static final int ALIGN_PARENT_TOP_LEFT = 1;
+    public static final int ALIGN_PARENT_TOP_RIGHT = 2;
+    public static final int ALIGN_PARENT_BOTTOM_LEFT = 3;
+    public static final int ALIGN_PARENT_BOTTOM_RIGHT = 4;
+
+
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({UNDEFINED, LEFT_OF_SHOWCASE, RIGHT_OF_SHOWCASE, ABOVE_SHOWCASE, BELOW_SHOWCASE})
     public @interface TextPosition {
     }
+
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({UNDEFINED, ALIGN_WITH_TEXT, ALIGN_PARENT_TOP_LEFT, ALIGN_PARENT_TOP_RIGHT, ALIGN_PARENT_BOTTOM_LEFT, ALIGN_PARENT_BOTTOM_RIGHT})
+    public @interface ButtonPosition {}
 
     private Button mEndButton;
     private TextDrawer textDrawer;
@@ -88,6 +99,9 @@ public class ShowcaseView extends RelativeLayout
     private boolean hasNoTarget = false;
     private boolean shouldCentreText;
     private Bitmap bitmapBuffer;
+
+    // Button position
+    private int buttonAlignment = UNDEFINED;
 
     // Animation items
     private long fadeInMillis;
@@ -293,19 +307,86 @@ public class ShowcaseView extends RelativeLayout
             final float[] textPosition = textDrawer
                     .calculateTextPosition(getMeasuredWidth(), getMeasuredHeight(),
                             shouldCentreText, rect);
-            if (mEndButton != null && mEndButton.getLayoutParams() != null) {
-                final RelativeLayout.LayoutParams layoutParams = (LayoutParams) mEndButton
-                        .getLayoutParams();
-                layoutParams.removeRule(ALIGN_PARENT_BOTTOM);
-                layoutParams.removeRule(ALIGN_PARENT_END);
-                layoutParams.removeRule(ALIGN_PARENT_RIGHT);
-                final DisplayMetrics dm = getContext().getResources().getDisplayMetrics();
-                layoutParams.topMargin = (int) textPosition[1];
-                layoutParams.leftMargin = (int) textPosition[0];
-                mEndButton.setLayoutParams(layoutParams);
-            }
+            recalculateButtonPosition(textPosition);
         }
         hasAlteredText = false;
+    }
+
+    private void recalculateButtonPosition(float[] textPosition) {
+        if (mEndButton != null && mEndButton.getLayoutParams() != null) {
+            switch (buttonAlignment) {
+                case ShowcaseView.ALIGN_WITH_TEXT:
+                    alignButtoWithText(textPosition);
+                    break;
+                case ShowcaseView.ALIGN_PARENT_TOP_LEFT:
+                    alignButtonTopLeft();
+                    break;
+                case ShowcaseView.ALIGN_PARENT_TOP_RIGHT:
+                    alignButtonTopRight();
+                    break;
+                case ShowcaseView.ALIGN_PARENT_BOTTOM_LEFT:
+                    alignButtonBottomLeft();
+                    break;
+                case ShowcaseView.ALIGN_PARENT_BOTTOM_RIGHT:
+                    alignButtonBottomRight();
+                    break;
+            }
+        }
+    }
+
+    private void alignButtonTopLeft() {
+        final LayoutParams layoutParams = (LayoutParams) mEndButton.getLayoutParams();
+        removeParamsRules(layoutParams);
+        layoutParams.topMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24f, getContext().getResources().getDisplayMetrics());
+        layoutParams.addRule(ALIGN_PARENT_TOP);
+        layoutParams.addRule(ALIGN_PARENT_START);
+        layoutParams.addRule(ALIGN_PARENT_LEFT);
+        mEndButton.setLayoutParams(layoutParams);
+    }
+
+    private void alignButtonTopRight() {
+        final LayoutParams layoutParams = (LayoutParams) mEndButton.getLayoutParams();
+        removeParamsRules(layoutParams);
+        layoutParams.topMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24f, getContext().getResources().getDisplayMetrics());
+        layoutParams.addRule(ALIGN_PARENT_TOP);
+        layoutParams.addRule(ALIGN_PARENT_END);
+        layoutParams.addRule(ALIGN_PARENT_RIGHT);
+        mEndButton.setLayoutParams(layoutParams);
+    }
+
+    private void alignButtonBottomLeft() {
+        final LayoutParams layoutParams = (LayoutParams) mEndButton.getLayoutParams();
+        removeParamsRules(layoutParams);
+        layoutParams.bottomMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24f, getContext().getResources().getDisplayMetrics());
+        layoutParams.addRule(ALIGN_PARENT_BOTTOM);
+        layoutParams.addRule(ALIGN_PARENT_START);
+        layoutParams.addRule(ALIGN_PARENT_LEFT);
+        mEndButton.setLayoutParams(layoutParams);
+    }
+
+    private void alignButtonBottomRight() {
+        final LayoutParams layoutParams = (LayoutParams) mEndButton.getLayoutParams();
+        removeParamsRules(layoutParams);
+        layoutParams.bottomMargin = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24f, getContext().getResources().getDisplayMetrics());
+        layoutParams.addRule(ALIGN_PARENT_BOTTOM);
+        layoutParams.addRule(ALIGN_PARENT_END);
+        layoutParams.addRule(ALIGN_PARENT_RIGHT);
+        mEndButton.setLayoutParams(layoutParams);
+    }
+
+    private void alignButtoWithText(float[] textPosition) {
+        final LayoutParams layoutParams = (LayoutParams) mEndButton
+                .getLayoutParams();
+        removeParamsRules(layoutParams);
+        layoutParams.topMargin = (int) textPosition[1];
+        layoutParams.leftMargin = (int) textPosition[0];
+        mEndButton.setLayoutParams(layoutParams);
+    }
+
+    private void removeParamsRules(LayoutParams layoutParams) {
+        layoutParams.removeRule(ALIGN_PARENT_BOTTOM);
+        layoutParams.removeRule(ALIGN_PARENT_END);
+        layoutParams.removeRule(ALIGN_PARENT_RIGHT);
     }
 
     @SuppressWarnings("NullableProblems")
@@ -522,16 +603,6 @@ public class ShowcaseView extends RelativeLayout
         }
 
         /**
-         * Set a custom text drawer which will be responsible for measuing and drawing the Title and Content
-         * */
-        public Builder setTextDrawer(TextDrawer textDrawer) {
-            textDrawer = showcaseView.textDrawer;
-            showcaseView.setTextDrawer(textDrawer);
-
-            return this;
-        }
-
-        /**
          * Set the title text shown on the ShowcaseView.
          */
         public Builder setContentTitle(int resId) {
@@ -551,6 +622,11 @@ public class ShowcaseView extends RelativeLayout
          */
         public Builder setContentText(int resId) {
             return setContentText(activity.getString(resId));
+        }
+
+        public Builder setButtonAlignment(@ButtonPosition int buttonAlignment) {
+            showcaseView.buttonAlignment = buttonAlignment;
+            return this;
         }
 
         /**
